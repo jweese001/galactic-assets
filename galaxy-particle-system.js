@@ -31,6 +31,10 @@ export class GalaxyParticleSystem {
       particleSizeMin: config.particleSizeMin !== undefined ? config.particleSizeMin : 0.3,
       particleSizeMax: config.particleSizeMax !== undefined ? config.particleSizeMax : 3.0,
       particleBrightness: config.particleBrightness !== undefined ? config.particleBrightness : 1.0,
+      // Core control parameters
+      coreBrightness: config.coreBrightness !== undefined ? config.coreBrightness : 0.5,
+      coreAlphaFalloff: config.coreAlphaFalloff !== undefined ? config.coreAlphaFalloff : 0.6,
+      coreExclusionRadius: config.coreExclusionRadius !== undefined ? config.coreExclusionRadius : 0.0,
     };
 
     // System markers (explorable star systems)
@@ -150,11 +154,15 @@ export class GalaxyParticleSystem {
     const { particleSizeMin, particleSizeMax, particleBrightness } = this.config;
     const sizeRange = particleSizeMax - particleSizeMin;
 
+    // Calculate normalized radius for core controls
+    const normalizedRadius = radius / size;
+    const baseAlpha = (0.3 + Math.random() * 0.7) * particleBrightness;
+
     return {
       x, y, z,
-      ...this.getParticleColor(radius / size),
+      ...this.getParticleColor(normalizedRadius),
       size: Math.random() * sizeRange + particleSizeMin,
-      alpha: (0.3 + Math.random() * 0.7) * particleBrightness
+      alpha: this.calculateCoreAlpha(normalizedRadius, baseAlpha)
     };
   }
 
@@ -181,11 +189,16 @@ export class GalaxyParticleSystem {
       const { particleSizeMin, particleSizeMax, particleBrightness } = this.config;
       const sizeRange = particleSizeMax - particleSizeMin;
 
+      // Calculate normalized radius for core controls (bar is in core region)
+      const distance = Math.sqrt(x * x + z * z);
+      const normalizedRadius = distance / size;
+      const baseAlpha = (0.5 + Math.random() * 0.5) * particleBrightness;
+
       return {
         x, y, z,
         ...this.getParticleColor(0.1), // Core color
         size: Math.random() * sizeRange + particleSizeMin,
-        alpha: (0.5 + Math.random() * 0.5) * particleBrightness
+        alpha: this.calculateCoreAlpha(normalizedRadius, baseAlpha)
       };
     } else {
       // Regular spiral arms (starting from bar ends)
@@ -212,11 +225,15 @@ export class GalaxyParticleSystem {
     const { particleSizeMin, particleSizeMax, particleBrightness } = this.config;
     const sizeRange = particleSizeMax - particleSizeMin;
 
+    // Calculate normalized radius for core controls
+    const normalizedRadius = radius / (size * 0.8);
+    const baseAlpha = (0.2 + Math.random() * 0.6) * particleBrightness;
+
     return {
       x, y, z,
-      ...this.getParticleColor(radius / (size * 0.8)),
+      ...this.getParticleColor(normalizedRadius),
       size: Math.random() * sizeRange + particleSizeMin,
-      alpha: (0.2 + Math.random() * 0.6) * particleBrightness
+      alpha: this.calculateCoreAlpha(normalizedRadius, baseAlpha)
     };
   }
 
@@ -245,11 +262,16 @@ export class GalaxyParticleSystem {
     const { particleSizeMin, particleSizeMax, particleBrightness } = this.config;
     const sizeRange = particleSizeMax - particleSizeMin;
 
+    // Calculate normalized radius for core controls (distance from center)
+    const distance = Math.sqrt(x * x + z * z);
+    const normalizedRadius = distance / size;
+    const baseAlpha = (0.2 + Math.random() * 0.7) * particleBrightness;
+
     return {
       x, y, z,
       ...this.getParticleColor(Math.random()), // Random colors
       size: Math.random() * sizeRange + particleSizeMin,
-      alpha: (0.2 + Math.random() * 0.7) * particleBrightness
+      alpha: this.calculateCoreAlpha(normalizedRadius, baseAlpha)
     };
   }
 
@@ -274,11 +296,15 @@ export class GalaxyParticleSystem {
     const { particleSizeMin, particleSizeMax, particleBrightness } = this.config;
     const sizeRange = particleSizeMax - particleSizeMin;
 
+    // Calculate normalized radius for core controls
+    const normalizedRadius = radius / size;
+    const baseAlpha = (0.4 + Math.random() * 0.6) * particleBrightness;
+
     return {
       x, y, z,
       ...this.getParticleColor((radius - minRadius) / (maxRadius - minRadius)),
       size: Math.random() * sizeRange + particleSizeMin,
-      alpha: (0.4 + Math.random() * 0.6) * particleBrightness
+      alpha: this.calculateCoreAlpha(normalizedRadius, baseAlpha)
     };
   }
 
@@ -300,6 +326,43 @@ export class GalaxyParticleSystem {
     }
 
     return { r: color.r, g: color.g, b: color.b };
+  }
+
+  /**
+   * Calculate alpha value for particles in the core region
+   * Applies graduated transparency and brightness controls
+   *
+   * @param {number} normalizedRadius - Distance from center (0.0 = center, 1.0 = edge)
+   * @param {number} baseAlpha - Base alpha value before core adjustments
+   * @returns {number} Adjusted alpha value
+   */
+  calculateCoreAlpha(normalizedRadius, baseAlpha) {
+    const { coreSize, coreBrightness, coreAlphaFalloff, coreExclusionRadius } = this.config;
+
+    // Check if particle is in exclusion zone (optional empty center)
+    if (normalizedRadius < coreExclusionRadius) {
+      return 0.0; // Completely transparent in exclusion zone
+    }
+
+    // Check if particle is in core region
+    const isInCore = normalizedRadius < coreSize;
+
+    if (!isInCore) {
+      // Outside core - use base alpha
+      return baseAlpha;
+    }
+
+    // Inside core - apply core brightness and alpha falloff
+    // coreT: 0.0 at center, 1.0 at core edge
+    const coreT = normalizedRadius / coreSize;
+
+    // Apply alpha falloff (reduces alpha near center to prevent solid appearance)
+    // coreAlphaFalloff: 0.0 = no reduction, 1.0 = maximum reduction
+    const falloffReduction = (1.0 - coreT) * coreAlphaFalloff;
+    const falloffMultiplier = 1.0 - falloffReduction;
+
+    // Apply core brightness multiplier
+    return baseAlpha * coreBrightness * falloffMultiplier;
   }
 
   /**
