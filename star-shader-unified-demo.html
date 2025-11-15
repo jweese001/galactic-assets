@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unified Star Shader - Temperature-Based Rendering</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    #controls {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(20, 20, 20, 0.95);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      width: 360px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    #info-panel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(20, 20, 20, 0.95);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      width: 300px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    h2 {
+      margin: 0 0 15px 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      border-bottom: 2px solid #007acc;
+      padding-bottom: 10px;
+    }
+    h3 {
+      margin: 0 0 15px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      border-bottom: 2px solid #007acc;
+      padding-bottom: 10px;
+    }
+    h4 {
+      margin: 20px 0 12px 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .preset-group {
+      margin-bottom: 20px;
+    }
+    .control-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: #b0b0b0;
+      font-weight: 500;
+    }
+    select, input[type="range"] {
+      width: 100%;
+    }
+    select {
+      padding: 8px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    select:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+    input[type="range"] {
+      height: 4px;
+      background: #2a2a2a;
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #007acc;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: #007acc;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+    .value {
+      display: inline-block;
+      float: right;
+      color: #007acc;
+      font-weight: 600;
+      font-size: 11px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background: #007acc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #005a9e;
+    }
+    button.secondary {
+      background: #333;
+    }
+    button.secondary:hover {
+      background: #444;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    .info-label {
+      color: #999;
+    }
+    .info-value {
+      color: #fff;
+      font-weight: 600;
+    }
+    .star-description {
+      margin-top: 15px;
+      padding: 12px;
+      background: rgba(0, 122, 204, 0.1);
+      border-left: 3px solid #007acc;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #ccc;
+    }
+    .collapsible-section {
+      margin-top: 15px;
+    }
+    .section-toggle {
+      background: #2a2a2a;
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .section-toggle:hover {
+      background: #333;
+    }
+    .section-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .section-content.open {
+      max-height: 1000px;
+    }
+    .chevron {
+      transition: transform 0.3s ease;
+    }
+    .chevron.open {
+      transform: rotate(180deg);
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <h2>Temperature-Based Star Shader</h2>
+
+    <!-- Preset Selection -->
+    <div class="preset-group">
+      <div class="control-group">
+        <label>Spectral Type</label>
+        <select id="spectralType">
+          <option value="O">O - Blue (30k-50k K)</option>
+          <option value="B">B - Blue-White (10k-30k K)</option>
+          <option value="A">A - White (7.5k-10k K)</option>
+          <option value="F">F - Yellow-White (6k-7.5k K)</option>
+          <option value="G" selected>G - Yellow/Sun-like (5.2k-6k K)</option>
+          <option value="K">K - Orange (3.7k-5.2k K)</option>
+          <option value="M">M - Red (2.4k-3.7k K)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Evolutionary Stage</label>
+        <select id="evolutionaryStage">
+          <option value="MainSequence" selected>Main Sequence (90%)</option>
+          <option value="RedGiant">Red Giant (8%)</option>
+          <option value="WhiteDwarf">White Dwarf (2%)</option>
+        </select>
+      </div>
+
+      <button onclick="applyPreset()">Apply Preset</button>
+    </div>
+
+    <!-- Collapsible Sections -->
+    <div class="collapsible-section">
+      <div class="section-toggle" onclick="toggleSection('temperature')">
+        <span>Temperature (Kelvin)</span>
+        <span class="chevron open" id="temperature-chevron">▼</span>
+      </div>
+      <div class="section-content open" id="temperature-content">
+        <div class="control-group">
+          <label>High Temperature: <span class="value" id="highTemp-value">6000</span> K</label>
+          <input type="range" id="highTemp" min="2000" max="50000" value="6000" step="100">
+        </div>
+        <div class="control-group">
+          <label>Low Temperature: <span class="value" id="lowTemp-value">5200</span> K</label>
+          <input type="range" id="lowTemp" min="2000" max="50000" value="5200" step="100">
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible-section">
+      <div class="section-toggle" onclick="toggleSection('surface')">
+        <span>Surface Activity</span>
+        <span class="chevron open" id="surface-chevron">▼</span>
+      </div>
+      <div class="section-content open" id="surface-content">
+        <div class="control-group">
+          <label>Noise Scale: <span class="value" id="scale-value">0.40</span></label>
+          <input type="range" id="scale" min="0.1" max="2.0" value="0.40" step="0.01">
+        </div>
+        <div class="control-group">
+          <label>Animation Speed: <span class="value" id="timeSpeed-value">0.01</span></label>
+          <input type="range" id="timeSpeed" min="0" max="0.05" value="0.01" step="0.001">
+        </div>
+        <div class="control-group">
+          <label>Sunspot Frequency: <span class="value" id="sunspotFreq-value">4.0</span></label>
+          <input type="range" id="sunspotFreq" min="1.0" max="15.0" value="4.0" step="0.5">
+        </div>
+        <div class="control-group">
+          <label>Sunspot Intensity: <span class="value" id="sunspotIntensity-value">1.5</span></label>
+          <input type="range" id="sunspotIntensity" min="0.5" max="3.0" value="1.5" step="0.1">
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible-section">
+      <div class="section-toggle" onclick="toggleSection('limb')">
+        <span>Limb Darkening</span>
+        <span class="chevron open" id="limb-chevron">▼</span>
+      </div>
+      <div class="section-content open" id="limb-content">
+        <div class="control-group">
+          <label>Limb Power: <span class="value" id="limbPower-value">2.5</span></label>
+          <input type="range" id="limbPower" min="0.5" max="5.0" value="2.5" step="0.1">
+        </div>
+        <div class="control-group">
+          <label>Center Brightness: <span class="value" id="centerBright-value">1.2</span></label>
+          <input type="range" id="centerBright" min="0.5" max="3.0" value="1.2" step="0.05">
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible-section">
+      <div class="section-toggle" onclick="toggleSection('bloom')">
+        <span>Bloom / Glow</span>
+        <span class="chevron open" id="bloom-chevron">▼</span>
+      </div>
+      <div class="section-content open" id="bloom-content">
+        <div class="control-group">
+          <label>Bloom Strength: <span class="value" id="bloomStrength-value">1.5</span></label>
+          <input type="range" id="bloomStrength" min="0" max="3" value="1.5" step="0.1">
+        </div>
+        <div class="control-group">
+          <label>Bloom Radius: <span class="value" id="bloomRadius-value">0.4</span></label>
+          <input type="range" id="bloomRadius" min="0" max="1" value="0.4" step="0.05">
+        </div>
+        <div class="control-group">
+          <label>Bloom Threshold: <span class="value" id="bloomThreshold-value">0.5</span></label>
+          <input type="range" id="bloomThreshold" min="0" max="1" value="0.5" step="0.05">
+        </div>
+      </div>
+    </div>
+
+    <button onclick="randomizeSeed()">Randomize Seed</button>
+    <button onclick="toggleAnimation()" class="secondary">Toggle Animation</button>
+    <button onclick="exportPreset()" class="secondary">Export Preset JSON</button>
+  </div>
+
+  <div id="info-panel">
+    <h3>Star Information</h3>
+    <div class="info-row">
+      <span class="info-label">Type:</span>
+      <span class="info-value" id="info-type">G-type Main Sequence</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">High Temp:</span>
+      <span class="info-value" id="info-hightemp">6,000 K</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Low Temp:</span>
+      <span class="info-value" id="info-lowtemp">5,200 K</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Color:</span>
+      <span class="info-value" id="info-color">Yellow</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Luminosity:</span>
+      <span class="info-value" id="info-luminosity">1.0 L☉</span>
+    </div>
+    <div class="star-description" id="star-description">
+      Our Sun is a G-type main sequence star (G2V). It fuses hydrogen into helium in its core, producing the energy that sustains life on Earth.
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.159.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.159.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+    // ============================================================================
+    // STAR PRESETS DATABASE (Temperature-Based)
+    // ============================================================================
+    const STAR_PRESETS = {
+      O: {
+        MainSequence: {
+          name: "O-type Main Sequence",
+          highTemp: 45000,
+          lowTemp: 35000,
+          scale: 0.5,
+          timeSpeed: 0.015,
+          sunspotFreq: 6.0,
+          sunspotIntensity: 1.8,
+          limbPower: 3.5,
+          centerBright: 2.2,
+          bloomStrength: 2.8,
+          bloomRadius: 0.7,
+          bloomThreshold: 0.3,
+          tempRange: "30,000-50,000 K",
+          colorName: "Blue",
+          luminosity: "30,000-1,000,000 L☉",
+          description: "The rarest and most massive stars. Extremely hot with intense stellar winds and strong surface activity. These blue supergiants have very short lifespans of only a few million years."
+        },
+        RedGiant: null,
+        WhiteDwarf: null
+      },
+      B: {
+        MainSequence: {
+          name: "B-type Main Sequence",
+          highTemp: 25000,
+          lowTemp: 18000,
+          scale: 0.45,
+          timeSpeed: 0.012,
+          sunspotFreq: 5.5,
+          sunspotIntensity: 1.7,
+          limbPower: 3.2,
+          centerBright: 2.0,
+          bloomStrength: 2.4,
+          bloomRadius: 0.6,
+          bloomThreshold: 0.35,
+          tempRange: "10,000-30,000 K",
+          colorName: "Blue-White",
+          luminosity: "25-30,000 L☉",
+          description: "Hot blue-white stars with strong ultraviolet emission. Examples include Rigel and Spica. These massive stars burn through their fuel quickly."
+        },
+        RedGiant: null,
+        WhiteDwarf: null
+      },
+      A: {
+        MainSequence: {
+          name: "A-type Main Sequence",
+          highTemp: 9500,
+          lowTemp: 7800,
+          scale: 0.42,
+          timeSpeed: 0.010,
+          sunspotFreq: 5.0,
+          sunspotIntensity: 1.6,
+          limbPower: 2.8,
+          centerBright: 1.7,
+          bloomStrength: 2.0,
+          bloomRadius: 0.5,
+          bloomThreshold: 0.4,
+          tempRange: "7,500-10,000 K",
+          colorName: "White",
+          luminosity: "5-25 L☉",
+          description: "Pure white stars with strong hydrogen absorption lines. Sirius, the brightest star in our night sky, is an A-type star."
+        },
+        RedGiant: null,
+        WhiteDwarf: {
+          name: "White Dwarf (from A-type)",
+          highTemp: 30000,
+          lowTemp: 25000,
+          scale: 0.3,
+          timeSpeed: 0.0,
+          sunspotFreq: 1.0,
+          sunspotIntensity: 0.0,
+          limbPower: 5.0,
+          centerBright: 2.5,
+          bloomStrength: 1.3,
+          bloomRadius: 0.3,
+          bloomThreshold: 0.6,
+          tempRange: "8,000-40,000 K",
+          colorName: "White",
+          luminosity: "0.0001-100 L☉",
+          description: "Dense stellar remnant about the size of Earth. No fusion occurs - it slowly cools over billions of years, radiating away stored heat."
+        }
+      },
+      F: {
+        MainSequence: {
+          name: "F-type Main Sequence",
+          highTemp: 7200,
+          lowTemp: 6200,
+          scale: 0.40,
+          timeSpeed: 0.008,
+          sunspotFreq: 4.5,
+          sunspotIntensity: 1.5,
+          limbPower: 2.6,
+          centerBright: 1.6,
+          bloomStrength: 1.8,
+          bloomRadius: 0.45,
+          bloomThreshold: 0.45,
+          tempRange: "6,000-7,500 K",
+          colorName: "Yellow-White",
+          luminosity: "1.5-5 L☉",
+          description: "Yellow-white stars slightly hotter and brighter than our Sun. Procyon is a well-known F-type star."
+        },
+        RedGiant: null,
+        WhiteDwarf: {
+          name: "White Dwarf (from F-type)",
+          highTemp: 28000,
+          lowTemp: 23000,
+          scale: 0.3,
+          timeSpeed: 0.0,
+          sunspotFreq: 1.0,
+          sunspotIntensity: 0.0,
+          limbPower: 5.0,
+          centerBright: 2.4,
+          bloomStrength: 1.2,
+          bloomRadius: 0.3,
+          bloomThreshold: 0.6,
+          tempRange: "8,000-40,000 K",
+          colorName: "White",
+          luminosity: "0.0001-100 L☉",
+          description: "A cooling stellar ember, the final stage for medium-sized stars. This compact object has no fuel left to burn."
+        }
+      },
+      G: {
+        MainSequence: {
+          name: "G-type Main Sequence (Sun-like)",
+          highTemp: 6000,
+          lowTemp: 5200,
+          scale: 0.40,
+          timeSpeed: 0.01,
+          sunspotFreq: 4.0,
+          sunspotIntensity: 1.5,
+          limbPower: 2.5,
+          centerBright: 1.5,
+          bloomStrength: 1.5,
+          bloomRadius: 0.4,
+          bloomThreshold: 0.5,
+          tempRange: "5,200-6,000 K",
+          colorName: "Yellow",
+          luminosity: "0.6-1.5 L☉",
+          description: "Our Sun is a G-type main sequence star (G2V). Yellow stars like these are ideal for supporting life, with stable energy output and long lifespans of about 10 billion years. Surface temperature: 5,778 K."
+        },
+        RedGiant: {
+          name: "Red Giant (from G-type)",
+          highTemp: 4500,
+          lowTemp: 3500,
+          scale: 0.30,
+          timeSpeed: 0.005,
+          sunspotFreq: 3.0,
+          sunspotIntensity: 1.3,
+          limbPower: 1.2,
+          centerBright: 1.1,
+          bloomStrength: 2.2,
+          bloomRadius: 0.9,
+          bloomThreshold: 0.3,
+          tempRange: "3,000-5,000 K",
+          colorName: "Red-Orange",
+          luminosity: "100-1,000 L☉",
+          description: "In about 5 billion years, our Sun will become a red giant, expanding to potentially engulf Earth's orbit. The outer layers become cool and diffuse while the core contracts."
+        },
+        WhiteDwarf: {
+          name: "White Dwarf (from G-type)",
+          highTemp: 25000,
+          lowTemp: 20000,
+          scale: 0.3,
+          timeSpeed: 0.0,
+          sunspotFreq: 1.0,
+          sunspotIntensity: 0.0,
+          limbPower: 5.0,
+          centerBright: 2.3,
+          bloomStrength: 1.1,
+          bloomRadius: 0.3,
+          bloomThreshold: 0.6,
+          tempRange: "8,000-40,000 K",
+          colorName: "White",
+          luminosity: "0.0001-100 L☉",
+          description: "The ultimate fate of our Sun - a dense Earth-sized ember composed mostly of carbon and oxygen, slowly cooling over trillions of years."
+        }
+      },
+      K: {
+        MainSequence: {
+          name: "K-type Main Sequence",
+          highTemp: 5000,
+          lowTemp: 3900,
+          scale: 0.38,
+          timeSpeed: 0.008,
+          sunspotFreq: 3.5,
+          sunspotIntensity: 2.3,
+          limbPower: 2.3,
+          centerBright: 1.4,
+          bloomStrength: 1.3,
+          bloomRadius: 0.38,
+          bloomThreshold: 0.5,
+          tempRange: "3,700-5,200 K",
+          colorName: "Orange",
+          luminosity: "0.08-0.6 L☉",
+          description: "Cooler orange stars that are very common and have extremely long lifespans (15-45 billion years). Alpha Centauri B is a K-type star, and they're considered excellent candidates for hosting habitable planets."
+        },
+        RedGiant: {
+          name: "Red Giant (from K-type)",
+          highTemp: 4200,
+          lowTemp: 3200,
+          scale: 0.28,
+          timeSpeed: 0.004,
+          sunspotFreq: 2.5,
+          sunspotIntensity: 2.0,
+          limbPower: 1.0,
+          centerBright: 1.05,
+          bloomStrength: 2.0,
+          bloomRadius: 0.95,
+          bloomThreshold: 0.3,
+          tempRange: "3,000-4,500 K",
+          colorName: "Red",
+          luminosity: "100-1,000 L☉",
+          description: "An evolved K-type star that has exhausted its core hydrogen and expanded dramatically. The surface is cool but enormous in size."
+        },
+        WhiteDwarf: {
+          name: "White Dwarf (from K-type)",
+          highTemp: 23000,
+          lowTemp: 18000,
+          scale: 0.3,
+          timeSpeed: 0.0,
+          sunspotFreq: 1.0,
+          sunspotIntensity: 0.0,
+          limbPower: 5.0,
+          centerBright: 2.2,
+          bloomStrength: 1.0,
+          bloomRadius: 0.3,
+          bloomThreshold: 0.6,
+          tempRange: "8,000-40,000 K",
+          colorName: "White",
+          luminosity: "0.0001-100 L☉",
+          description: "The final evolutionary stage - a compact stellar remnant no longer producing energy through fusion."
+        }
+      },
+      M: {
+        MainSequence: {
+          name: "M-type Main Sequence (Red Dwarf)",
+          highTemp: 3500,
+          lowTemp: 2500,
+          scale: 0.35,
+          timeSpeed: 0.010,
+          sunspotFreq: 3.0,
+          sunspotIntensity: 2.8,
+          limbPower: 2.0,
+          centerBright: 1.2,
+          bloomStrength: 0.9,
+          bloomRadius: 0.35,
+          bloomThreshold: 0.55,
+          tempRange: "2,400-3,700 K",
+          colorName: "Red",
+          luminosity: "0.0001-0.08 L☉",
+          description: "The most common type of star in the galaxy (76%). These small, cool red dwarfs can burn for trillions of years - longer than the current age of the universe! Proxima Centauri, our nearest stellar neighbor, is an M-type star. Many are flare stars with sudden brightness increases."
+        },
+        RedGiant: {
+          name: "Red Giant (from M-type)",
+          highTemp: 3300,
+          lowTemp: 2700,
+          scale: 0.25,
+          timeSpeed: 0.003,
+          sunspotFreq: 2.0,
+          sunspotIntensity: 1.8,
+          limbPower: 0.8,
+          centerBright: 1.0,
+          bloomStrength: 1.8,
+          bloomRadius: 1.0,
+          bloomThreshold: 0.35,
+          tempRange: "2,500-3,500 K",
+          colorName: "Deep Red",
+          luminosity: "100-1,000 L☉",
+          description: "Though M-type stars live so long that none have yet evolved to red giants naturally, more massive red stars can end up in this stage. Very cool and diffuse."
+        },
+        WhiteDwarf: {
+          name: "White Dwarf (from M-type)",
+          highTemp: 20000,
+          lowTemp: 15000,
+          scale: 0.3,
+          timeSpeed: 0.0,
+          sunspotFreq: 1.0,
+          sunspotIntensity: 0.0,
+          limbPower: 5.0,
+          centerBright: 2.1,
+          bloomStrength: 0.9,
+          bloomRadius: 0.3,
+          bloomThreshold: 0.6,
+          tempRange: "8,000-40,000 K",
+          colorName: "White",
+          luminosity: "0.0001-100 L☉",
+          description: "M-type stars live so long that none have actually reached white dwarf stage yet in our universe's history. This is a theoretical future state."
+        }
+      }
+    };
+
+    // ============================================================================
+    // SHADERS (Temperature-Based + Limb Darkening)
+    // ============================================================================
+    const vertexShader = `
+      uniform float time;
+      uniform float scale;
+
+      varying vec3 vTexCoord3D;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+
+      void main() {
+        // Slow down time effect significantly for subtle animation
+        vTexCoord3D = scale * (position.xyz + vec3(time * 0.1, time * 0.08, time * 0.09));
+        vNormal = normalize(normalMatrix * normal);
+        vPosition = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+
+    const fragmentShader = `
+      varying vec3 vTexCoord3D;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+
+      uniform float highTemp;
+      uniform float lowTemp;
+      uniform float time;
+      uniform float sunspotFreq;
+      uniform float sunspotIntensity;
+      uniform float limbPower;
+      uniform float centerBright;
+
+      // Simplex noise functions
+      vec4 permute(vec4 x) {
+        return mod(((x * 34.0) + 1.0) * x, 289.0);
+      }
+
+      vec4 taylorInvSqrt(vec4 r) {
+        return 1.79284291400159 - 0.85373472095314 * r;
+      }
+
+      float snoise(vec3 v) {
+        const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
+        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+
+        vec3 i  = floor(v + dot(v, C.yyy));
+        vec3 x0 = v - i + dot(i, C.xxx);
+
+        vec3 g = step(x0.yzx, x0.xyz);
+        vec3 l = 1.0 - g;
+        vec3 i1 = min(g.xyz, l.zxy);
+        vec3 i2 = max(g.xyz, l.zxy);
+
+        vec3 x1 = x0 - i1 + 1.0 * C.xxx;
+        vec3 x2 = x0 - i2 + 2.0 * C.xxx;
+        vec3 x3 = x0 - 1.0 + 3.0 * C.xxx;
+
+        i = mod(i, 289.0);
+        vec4 p = permute(permute(permute(
+             i.z + vec4(0.0, i1.z, i2.z, 1.0))
+             + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+             + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+
+        float n_ = 1.0 / 7.0;
+        vec3 ns = n_ * D.wyz - D.xzx;
+
+        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+
+        vec4 x_ = floor(j * ns.z);
+        vec4 y_ = floor(j - 7.0 * x_);
+
+        vec4 x = x_ * ns.x + ns.yyyy;
+        vec4 y = y_ * ns.x + ns.yyyy;
+        vec4 h = 1.0 - abs(x) - abs(y);
+
+        vec4 b0 = vec4(x.xy, y.xy);
+        vec4 b1 = vec4(x.zw, y.zw);
+
+        vec4 s0 = floor(b0) * 2.0 + 1.0;
+        vec4 s1 = floor(b1) * 2.0 + 1.0;
+        vec4 sh = -step(h, vec4(0.0));
+
+        vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+        vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+
+        vec3 p0 = vec3(a0.xy, h.x);
+        vec3 p1 = vec3(a0.zw, h.y);
+        vec3 p2 = vec3(a1.xy, h.z);
+        vec3 p3 = vec3(a1.zw, h.w);
+
+        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+        p0 *= norm.x;
+        p1 *= norm.y;
+        p2 *= norm.z;
+        p3 *= norm.w;
+
+        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+        m = m * m;
+        return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+      }
+
+      const int octaves = 4;
+
+      float noise(vec3 position, float frequency, float persistence) {
+        float total = 0.0;
+        float maxAmplitude = 0.0;
+        float amplitude = 1.0;
+        for (int i = 0; i < octaves; i++) {
+          total += snoise(position * frequency) * amplitude;
+          frequency *= 2.0;
+          maxAmplitude += amplitude;
+          amplitude *= persistence;
+        }
+        return total / maxAmplitude;
+      }
+
+      void main() {
+        // Base noise for surface variation
+        float noiseBase = (noise(vTexCoord3D, 0.40, 0.7) + 1.0) / 2.0;
+
+        // Multi-octave sunspots (cooler dark regions)
+        float sunspot1 = snoise(vTexCoord3D * sunspotFreq);
+        float sunspot2 = snoise(vTexCoord3D * sunspotFreq * 2.3) * 0.5;
+        float sunspot3 = snoise(vTexCoord3D * sunspotFreq * 4.7) * 0.25;
+        float sunspotNoise = (sunspot1 + sunspot2 + sunspot3);
+
+        // Create discrete spots with threshold - adjusted for better visibility
+        float t1 = sunspotNoise * sunspotIntensity - 0.8;
+
+        // Bright spots (hotter regions) - also multi-octave
+        float bright1 = snoise(vTexCoord3D * 0.8);
+        float bright2 = snoise(vTexCoord3D * 1.6) * 0.5;
+        float brightNoise = (bright1 + bright2) * 0.5 - 0.3;
+
+        float ss = max(0.0, t1) * 0.3;
+        float brightSpot = max(0.0, brightNoise) * 0.2;
+        float total = clamp(noiseBase - ss + brightSpot, 0.0, 1.0);
+
+        // Calculate temperature from noise
+        float temp = (highTemp * total + (1.0 - total) * lowTemp);
+
+        // Temperature to RGB conversion (blackbody radiation)
+        float i = (temp - 800.0) * 0.035068;
+
+        // R channel buckets
+        bool rbucket1 = i < 60.0;
+        bool rbucket2 = i >= 60.0 && i < 236.0;
+        bool rbucket3 = i >= 236.0 && i < 288.0;
+        bool rbucket4 = i >= 288.0 && i < 377.0;
+        bool rbucket5 = i >= 377.0 && i < 511.0;
+        bool rbucket6 = i >= 511.0;
+
+        // G channel buckets
+        bool gbucket1 = i < 60.0;
+        bool gbucket2 = i >= 60.0 && i < 103.0;
+        bool gbucket3 = i >= 103.0 && i < 133.0;
+        bool gbucket4 = i >= 133.0 && i < 174.0;
+        bool gbucket5 = i >= 174.0 && i < 236.0;
+        bool gbucket6 = i >= 236.0 && i < 286.0;
+        bool gbucket7 = i >= 286.0 && i < 367.0;
+        bool gbucket8 = i >= 367.0 && i < 511.0;
+        bool gbucket9 = i >= 511.0;
+
+        // B channel buckets
+        bool bbucket1 = i < 103.0;
+        bool bbucket2 = i >= 103.0 && i < 133.0;
+        bool bbucket3 = i >= 133.0 && i < 173.0;
+        bool bbucket4 = i >= 173.0 && i < 231.0;
+        bool bbucket5 = i >= 231.0;
+
+        float r =
+          float(rbucket1) * (0.0 + i * 4.25) +
+          float(rbucket2) * (255.0) +
+          float(rbucket3) * (255.0 + (i - 236.0) * -2.442) +
+          float(rbucket4) * (128.0 + (i - 288.0) * -0.764) +
+          float(rbucket5) * (60.0 + (i - 377.0) * -0.4477) +
+          float(rbucket6) * 0.0;
+
+        float g =
+           float(gbucket1) * (0.0) +
+           float(gbucket2) * (0.0 + (i - 60.0) * 2.3255) +
+           float(gbucket3) * (100.0 + (i - 103.0) * 4.433) +
+           float(gbucket4) * (233.0 + (i - 133.0) * 0.53658) +
+           float(gbucket5) * (255.0) +
+           float(gbucket6) * (255.0 + (i - 236.0) * -1.24) +
+           float(gbucket7) * (193.0 + (i - 286.0) * -0.7901) +
+           float(gbucket8) * (129.0 + (i - 367.0) * -0.45138) +
+           float(gbucket9) * (64.0 + (i - 511.0) * -0.06237);
+
+        float b =
+          float(bbucket1) * 0.0 +
+          float(bbucket2) * (0.0 + (i - 103.0) * 7.0333) +
+          float(bbucket3) * (211.0 + (i - 133.0) * 0.9) +
+          float(bbucket4) * (247.0 + (i - 173.0) * 0.1379) +
+          float(bbucket5) * 255.0;
+
+        vec3 color = vec3(r / 255.0, g / 255.0, b / 255.0);
+
+        // Limb darkening effect
+        float viewDot = max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0);
+        float limbDarkening = pow(viewDot, limbPower);
+        float brightness = limbDarkening * centerBright;
+
+        // Apply limb darkening to final color
+        vec3 finalColor = color * brightness;
+
+        gl_FragColor = vec4(finalColor, 1.0);
+      }
+    `;
+
+    // ============================================================================
+    // SCENE SETUP
+    // ============================================================================
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    camera.position.z = 3;
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    // ============================================================================
+    // POST-PROCESSING
+    // ============================================================================
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      1.5, 0.4, 0.5
+    );
+    composer.addPass(bloomPass);
+
+    // ============================================================================
+    // STAR CREATION
+    // ============================================================================
+    let animationEnabled = true;
+    let timeAccumulator = 0;
+
+    const uniforms = {
+      highTemp: { value: 6000.0 },
+      lowTemp: { value: 5200.0 },
+      scale: { value: 0.4 },
+      time: { value: 0.0 },
+      sunspotFreq: { value: 0.04 },
+      sunspotIntensity: { value: 2.7 },
+      limbPower: { value: 2.5 },
+      centerBright: { value: 1.5 }
+    };
+
+    const geometry = new THREE.IcosahedronGeometry(1, 4);
+    const material = new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms
+    });
+
+    const star = new THREE.Mesh(geometry, material);
+    scene.add(star);
+
+    // ============================================================================
+    // UI HELPER FUNCTIONS
+    // ============================================================================
+    function updateInfoPanel(preset) {
+      document.getElementById('info-type').textContent = preset.name;
+      document.getElementById('info-hightemp').textContent = preset.highTemp.toLocaleString() + ' K';
+      document.getElementById('info-lowtemp').textContent = preset.lowTemp.toLocaleString() + ' K';
+      document.getElementById('info-color').textContent = preset.colorName;
+      document.getElementById('info-luminosity').textContent = preset.luminosity;
+      document.getElementById('star-description').textContent = preset.description;
+    }
+
+    // ============================================================================
+    // PRESET APPLICATION
+    // ============================================================================
+    window.applyPreset = function() {
+      const spectralType = document.getElementById('spectralType').value;
+      const evolutionaryStage = document.getElementById('evolutionaryStage').value;
+
+      const preset = STAR_PRESETS[spectralType]?.[evolutionaryStage];
+
+      if (!preset) {
+        alert(`No preset available for ${spectralType}-type ${evolutionaryStage} stars.`);
+        return;
+      }
+
+      // Apply to uniforms
+      uniforms.highTemp.value = preset.highTemp;
+      uniforms.lowTemp.value = preset.lowTemp;
+      uniforms.scale.value = preset.scale;
+      uniforms.sunspotFreq.value = preset.sunspotFreq;
+      uniforms.sunspotIntensity.value = preset.sunspotIntensity;
+      uniforms.limbPower.value = preset.limbPower;
+      uniforms.centerBright.value = preset.centerBright;
+
+      bloomPass.strength = preset.bloomStrength;
+      bloomPass.radius = preset.bloomRadius;
+      bloomPass.threshold = preset.bloomThreshold;
+
+      // Update UI controls
+      document.getElementById('highTemp').value = preset.highTemp;
+      document.getElementById('lowTemp').value = preset.lowTemp;
+      document.getElementById('scale').value = preset.scale;
+      document.getElementById('timeSpeed').value = preset.timeSpeed;
+      document.getElementById('sunspotFreq').value = preset.sunspotFreq;
+      document.getElementById('sunspotIntensity').value = preset.sunspotIntensity;
+      document.getElementById('limbPower').value = preset.limbPower;
+      document.getElementById('centerBright').value = preset.centerBright;
+      document.getElementById('bloomStrength').value = preset.bloomStrength;
+      document.getElementById('bloomRadius').value = preset.bloomRadius;
+      document.getElementById('bloomThreshold').value = preset.bloomThreshold;
+
+      // Update value displays
+      document.getElementById('highTemp-value').textContent = preset.highTemp.toLocaleString();
+      document.getElementById('lowTemp-value').textContent = preset.lowTemp.toLocaleString();
+      document.getElementById('scale-value').textContent = preset.scale.toFixed(2);
+      document.getElementById('timeSpeed-value').textContent = preset.timeSpeed.toFixed(3);
+      document.getElementById('sunspotFreq-value').textContent = preset.sunspotFreq.toFixed(1);
+      document.getElementById('sunspotIntensity-value').textContent = preset.sunspotIntensity.toFixed(1);
+      document.getElementById('limbPower-value').textContent = preset.limbPower.toFixed(1);
+      document.getElementById('centerBright-value').textContent = preset.centerBright.toFixed(2);
+      document.getElementById('bloomStrength-value').textContent = preset.bloomStrength.toFixed(1);
+      document.getElementById('bloomRadius-value').textContent = preset.bloomRadius.toFixed(2);
+      document.getElementById('bloomThreshold-value').textContent = preset.bloomThreshold.toFixed(2);
+
+      updateInfoPanel(preset);
+    };
+
+    window.exportPreset = function() {
+      const currentPreset = {
+        highTemp: uniforms.highTemp.value,
+        lowTemp: uniforms.lowTemp.value,
+        scale: uniforms.scale.value,
+        timeSpeed: parseFloat(document.getElementById('timeSpeed').value),
+        sunspotFreq: uniforms.sunspotFreq.value,
+        sunspotIntensity: uniforms.sunspotIntensity.value,
+        limbPower: uniforms.limbPower.value,
+        centerBright: uniforms.centerBright.value,
+        bloomStrength: bloomPass.strength,
+        bloomRadius: bloomPass.radius,
+        bloomThreshold: bloomPass.threshold
+      };
+
+      console.log('Current Preset:', JSON.stringify(currentPreset, null, 2));
+      alert('Preset exported to console! (Press F12 to view)');
+    };
+
+    window.toggleSection = function(sectionName) {
+      const content = document.getElementById(`${sectionName}-content`);
+      const chevron = document.getElementById(`${sectionName}-chevron`);
+
+      content.classList.toggle('open');
+      chevron.classList.toggle('open');
+    };
+
+    window.randomizeSeed = function() {
+      uniforms.time.value = Math.random() * 1000;
+    };
+
+    window.toggleAnimation = function() {
+      animationEnabled = !animationEnabled;
+    };
+
+    // ============================================================================
+    // CONTROL EVENT LISTENERS
+    // ============================================================================
+    document.getElementById('highTemp').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      uniforms.highTemp.value = value;
+      document.getElementById('highTemp-value').textContent = value.toLocaleString();
+    });
+
+    document.getElementById('lowTemp').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      uniforms.lowTemp.value = value;
+      document.getElementById('lowTemp-value').textContent = value.toLocaleString();
+    });
+
+    document.getElementById('scale').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      uniforms.scale.value = value;
+      document.getElementById('scale-value').textContent = value.toFixed(2);
+    });
+
+    document.getElementById('timeSpeed').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('timeSpeed-value').textContent = value.toFixed(3);
+    });
+
+    document.getElementById('sunspotFreq').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      uniforms.sunspotFreq.value = value;
+      document.getElementById('sunspotFreq-value').textContent = value.toFixed(1);
+    });
+
+    document.getElementById('sunspotIntensity').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      uniforms.sunspotIntensity.value = value;
+      document.getElementById('sunspotIntensity-value').textContent = value.toFixed(1);
+    });
+
+    document.getElementById('limbPower').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      uniforms.limbPower.value = value;
+      document.getElementById('limbPower-value').textContent = value.toFixed(1);
+    });
+
+    document.getElementById('centerBright').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      uniforms.centerBright.value = value;
+      document.getElementById('centerBright-value').textContent = value.toFixed(2);
+    });
+
+    document.getElementById('bloomStrength').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      bloomPass.strength = value;
+      document.getElementById('bloomStrength-value').textContent = value.toFixed(1);
+    });
+
+    document.getElementById('bloomRadius').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      bloomPass.radius = value;
+      document.getElementById('bloomRadius-value').textContent = value.toFixed(2);
+    });
+
+    document.getElementById('bloomThreshold').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      bloomPass.threshold = value;
+      document.getElementById('bloomThreshold-value').textContent = value.toFixed(2);
+    });
+
+    // ============================================================================
+    // ANIMATION LOOP
+    // ============================================================================
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (animationEnabled) {
+        const speed = parseFloat(document.getElementById('timeSpeed').value);
+        timeAccumulator += speed;
+        uniforms.time.value = timeAccumulator;
+      }
+
+      star.rotation.y += 0.001;
+      controls.update();
+      composer.render();
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Initialize with G-type Main Sequence preset
+    applyPreset();
+    animate();
+  </script>
+</body>
+</html>

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Water Planet Shader Demo - Khora Engine</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #controls {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(20, 20, 20, 0.95);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      width: 320px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    h1 {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      border-bottom: 2px solid #007acc;
+      padding-bottom: 10px;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: #858585;
+      margin-top: -15px;
+      margin-bottom: 20px;
+    }
+
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #b0b0b0;
+    }
+
+    .value-display {
+      display: inline-block;
+      float: right;
+      color: #007acc;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: #2a2a2a;
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #007acc;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: #007acc;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 32px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background: #1a1a1a;
+      cursor: pointer;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background: #007acc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #005a9e;
+    }
+
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .preset-buttons button {
+      margin: 0;
+      padding: 8px;
+      font-size: 11px;
+    }
+
+    .info {
+      margin-top: 20px;
+      padding: 12px;
+      background: rgba(74, 158, 255, 0.1);
+      border-radius: 6px;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #a0a0a0;
+    }
+
+    .info strong {
+      color: #4a9eff;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div id="controls">
+    <h1>💧 Water Planet Shader</h1>
+    <p class="subtitle">Oceans, continents, and atmosphere</p>
+
+    <div class="control-group">
+      <label>
+        Water Coverage
+        <span class="value-display" id="waterValue">0.70</span>
+      </label>
+      <input type="range" id="waterCoverage" min="0" max="1" step="0.01" value="0.70">
+    </div>
+
+    <div class="control-group">
+      <label>
+        Terrain Scale
+        <span class="value-display" id="scaleValue">4.0</span>
+      </label>
+      <input type="range" id="terrainScale" min="1" max="10" step="0.1" value="4.0">
+    </div>
+
+    <div class="control-group">
+      <label>
+        Seed Rotation
+        <span class="value-display" id="seedValue">1.0</span>
+      </label>
+      <input type="range" id="seed" min="0" max="10" step="0.1" value="1.0">
+    </div>
+
+    <div class="control-group">
+      <label>Base Terrain Color</label>
+      <input type="color" id="baseColor" value="#8B7355">
+    </div>
+
+    <div class="control-group">
+      <label>
+        Atmosphere Density
+        <span class="value-display" id="atmosphereValue">0.8</span>
+      </label>
+      <input type="range" id="atmosphereDensity" min="0" max="1" step="0.01" value="0.8">
+    </div>
+
+    <div class="control-group">
+      <label>Atmosphere Color</label>
+      <input type="color" id="atmosphereColor" value="#87CEEB">
+    </div>
+
+    <div class="control-group checkbox-group">
+      <input type="checkbox" id="hasAtmosphere" checked>
+      <label for="hasAtmosphere" style="margin: 0;">Enable Atmosphere Glow</label>
+    </div>
+
+    <div class="control-group checkbox-group">
+      <input type="checkbox" id="autoRotate" checked>
+      <label for="autoRotate" style="margin: 0;">Auto Rotate</label>
+    </div>
+
+    <button id="randomize">🎲 Randomize Planet</button>
+
+    <div class="preset-buttons">
+      <button id="earthLike">🌍 Earth-like</button>
+      <button id="oceanWorld">🌊 Ocean World</button>
+      <button id="desertWorld">🏜️ Desert World</button>
+      <button id="alienOcean">👽 Alien Ocean</button>
+    </div>
+
+    <div class="info">
+      <strong>Water Shader Features:</strong><br>
+      • Deep blue oceans at low elevations<br>
+      • Shallow water near coastlines<br>
+      • Elevation-based land coloring<br>
+      • Atmosphere Fresnel glow at edges<br>
+      • 3-octave terrain noise<br>
+      • Seed-based rotation for variety
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // === Scene Setup ===
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000510);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 3);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.5;
+
+    // === Simplex Noise (inline for standalone demo) ===
+    const simplexNoise = `
+      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+      vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+      float simplex3D(vec3 v) {
+        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+
+        vec3 i  = floor(v + dot(v, C.yyy));
+        vec3 x0 = v - i + dot(i, C.xxx);
+
+        vec3 g = step(x0.yzx, x0.xyz);
+        vec3 l = 1.0 - g;
+        vec3 i1 = min(g.xyz, l.zxy);
+        vec3 i2 = max(g.xyz, l.zxy);
+
+        vec3 x1 = x0 - i1 + C.xxx;
+        vec3 x2 = x0 - i2 + C.yyy;
+        vec3 x3 = x0 - D.yyy;
+
+        i = mod289(i);
+        vec4 p = permute(permute(permute(
+          i.z + vec4(0.0, i1.z, i2.z, 1.0))
+          + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+          + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+
+        float n_ = 0.142857142857;
+        vec3 ns = n_ * D.wyz - D.xzx;
+
+        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+
+        vec4 x_ = floor(j * ns.z);
+        vec4 y_ = floor(j - 7.0 * x_);
+
+        vec4 x = x_ *ns.x + ns.yyyy;
+        vec4 y = y_ *ns.x + ns.yyyy;
+        vec4 h = 1.0 - abs(x) - abs(y);
+
+        vec4 b0 = vec4(x.xy, y.xy);
+        vec4 b1 = vec4(x.zw, y.zw);
+
+        vec4 s0 = floor(b0)*2.0 + 1.0;
+        vec4 s1 = floor(b1)*2.0 + 1.0;
+        vec4 sh = -step(h, vec4(0.0));
+
+        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+
+        vec3 p0 = vec3(a0.xy, h.x);
+        vec3 p1 = vec3(a0.zw, h.y);
+        vec3 p2 = vec3(a1.xy, h.z);
+        vec3 p3 = vec3(a1.zw, h.w);
+
+        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+        p0 *= norm.x;
+        p1 *= norm.y;
+        p2 *= norm.z;
+        p3 *= norm.w;
+
+        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+        m = m * m;
+        return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+      }
+    `;
+
+    // === Water Planet Shader ===
+    const vertexShader = `
+      varying vec3 vPosition;
+      varying vec3 vNormal;
+      varying vec3 vWorldPosition;
+      varying vec2 vUv;
+
+      void main() {
+        vPosition = position;
+        vNormal = normalize(normalMatrix * normal);
+        vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+
+    const fragmentShader = simplexNoise + `
+      uniform vec3 u_baseColor;
+      uniform float u_waterCoverage;
+      uniform float u_atmosphereDensity;
+      uniform vec3 u_atmosphereColor;
+      uniform float u_seed;
+      uniform bool u_hasAtmosphere;
+      uniform vec3 u_cameraPosition;
+      uniform float u_terrainScale;
+
+      varying vec3 vPosition;
+      varying vec3 vNormal;
+      varying vec3 vWorldPosition;
+      varying vec2 vUv;
+
+      void main() {
+        // Terrain generation
+        vec3 normPos = normalize(vPosition);
+
+        float seedAngle = u_seed * 6.28318;
+        mat3 rotation = mat3(
+          cos(seedAngle), 0.0, sin(seedAngle),
+          0.0, 1.0, 0.0,
+          -sin(seedAngle), 0.0, cos(seedAngle)
+        );
+        vec3 rotatedPos = rotation * normPos;
+        vec3 noisePos = rotatedPos * u_terrainScale;
+
+        float terrain = 0.0;
+        terrain += 0.5 * simplex3D(noisePos);
+        terrain += 0.25 * simplex3D(noisePos * 2.0);
+        terrain += 0.125 * simplex3D(noisePos * 4.0);
+        terrain = terrain * 0.5 + 0.5;
+
+        vec3 finalColor;
+
+        // Water planet rendering
+        if (u_waterCoverage > 0.3) {
+          vec3 waterColor = vec3(0.0, 0.4, 0.7);
+          vec3 shallowWater = vec3(0.1, 0.6, 0.9);
+
+          float waterLevel = 1.0 - u_waterCoverage;
+          bool isWater = terrain < waterLevel;
+
+          if (isWater) {
+            float depth = clamp((waterLevel - terrain) / u_waterCoverage, 0.0, 1.0);
+            finalColor = mix(shallowWater, waterColor, depth);
+          } else {
+            float landElevation = clamp((terrain - waterLevel) / (1.0 - waterLevel), 0.0, 1.0);
+
+            vec3 lowlandColor = u_baseColor * 0.6;
+            vec3 midlandColor = u_baseColor * 0.9;
+            vec3 highlandColor = u_baseColor * 1.2;
+            vec3 peakColor = u_baseColor * 1.5;
+
+            if (landElevation < 0.3) {
+              finalColor = mix(lowlandColor, midlandColor, landElevation / 0.3);
+            } else if (landElevation < 0.6) {
+              finalColor = mix(midlandColor, highlandColor, (landElevation - 0.3) / 0.3);
+            } else {
+              finalColor = mix(highlandColor, peakColor, (landElevation - 0.6) / 0.4);
+            }
+
+            float microDetail = simplex3D(normPos * 20.0) * 0.08;
+            finalColor += microDetail;
+          }
+        } else {
+          // Dry planet fallback
+          finalColor = u_baseColor * (0.6 + terrain * 0.4);
+        }
+
+        // Lighting
+        vec3 lightDir = normalize(vec3(1.0, 1.0, 0.5));
+        float diffuse = max(dot(vNormal, lightDir), 0.0);
+        float lighting = 0.5 + diffuse * 0.5;
+        finalColor *= lighting;
+
+        // Atmosphere glow
+        if (u_hasAtmosphere && u_atmosphereDensity > 0.01) {
+          vec3 viewDir = normalize(u_cameraPosition - vWorldPosition);
+          float fresnel = 1.0 - max(dot(viewDir, vNormal), 0.0);
+          fresnel = pow(fresnel, 3.0);
+          vec3 atmosphereGlow = u_atmosphereColor * fresnel * u_atmosphereDensity * 0.5;
+          finalColor += atmosphereGlow;
+        }
+
+        finalColor = clamp(finalColor, 0.0, 1.0);
+        gl_FragColor = vec4(finalColor, 1.0);
+      }
+    `;
+
+    // === Create Planet ===
+    const geometry = new THREE.IcosahedronGeometry(1, 64);
+    const material = new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: {
+        u_baseColor: { value: new THREE.Color(0.545, 0.451, 0.333) },
+        u_waterCoverage: { value: 0.7 },
+        u_atmosphereDensity: { value: 0.8 },
+        u_atmosphereColor: { value: new THREE.Color(0.529, 0.808, 0.922) },
+        u_seed: { value: 1.0 },
+        u_hasAtmosphere: { value: true },
+        u_cameraPosition: { value: camera.position },
+        u_terrainScale: { value: 4.0 }
+      }
+    });
+
+    const planet = new THREE.Mesh(geometry, material);
+    scene.add(planet);
+
+    // === Lighting ===
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+    directionalLight.position.set(5, 5, 5);
+    scene.add(directionalLight);
+
+    // === Controls ===
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16) / 255,
+        g: parseInt(result[2], 16) / 255,
+        b: parseInt(result[3], 16) / 255
+      } : null;
+    };
+
+    document.getElementById('waterCoverage').addEventListener('input', (e) => {
+      material.uniforms.u_waterCoverage.value = parseFloat(e.target.value);
+      document.getElementById('waterValue').textContent = e.target.value;
+    });
+
+    document.getElementById('terrainScale').addEventListener('input', (e) => {
+      material.uniforms.u_terrainScale.value = parseFloat(e.target.value);
+      document.getElementById('scaleValue').textContent = e.target.value;
+    });
+
+    document.getElementById('seed').addEventListener('input', (e) => {
+      material.uniforms.u_seed.value = parseFloat(e.target.value);
+      document.getElementById('seedValue').textContent = e.target.value;
+    });
+
+    document.getElementById('baseColor').addEventListener('input', (e) => {
+      const rgb = hexToRgb(e.target.value);
+      material.uniforms.u_baseColor.value.setRGB(rgb.r, rgb.g, rgb.b);
+    });
+
+    document.getElementById('atmosphereDensity').addEventListener('input', (e) => {
+      material.uniforms.u_atmosphereDensity.value = parseFloat(e.target.value);
+      document.getElementById('atmosphereValue').textContent = e.target.value;
+    });
+
+    document.getElementById('atmosphereColor').addEventListener('input', (e) => {
+      const rgb = hexToRgb(e.target.value);
+      material.uniforms.u_atmosphereColor.value.setRGB(rgb.r, rgb.g, rgb.b);
+    });
+
+    document.getElementById('hasAtmosphere').addEventListener('change', (e) => {
+      material.uniforms.u_hasAtmosphere.value = e.target.checked;
+    });
+
+    document.getElementById('autoRotate').addEventListener('change', (e) => {
+      controls.autoRotate = e.target.checked;
+    });
+
+    document.getElementById('randomize').addEventListener('click', () => {
+      const water = Math.random() * 0.4 + 0.3; // 0.3-0.7
+      const seed = Math.random() * 10;
+      const scale = Math.random() * 5 + 3; // 3-8
+
+      material.uniforms.u_waterCoverage.value = water;
+      material.uniforms.u_seed.value = seed;
+      material.uniforms.u_terrainScale.value = scale;
+
+      document.getElementById('waterCoverage').value = water;
+      document.getElementById('waterValue').textContent = water.toFixed(2);
+      document.getElementById('seed').value = seed;
+      document.getElementById('seedValue').textContent = seed.toFixed(1);
+      document.getElementById('terrainScale').value = scale;
+      document.getElementById('scaleValue').textContent = scale.toFixed(1);
+    });
+
+    // Presets
+    document.getElementById('earthLike').addEventListener('click', () => {
+      material.uniforms.u_waterCoverage.value = 0.7;
+      material.uniforms.u_baseColor.value.setRGB(0.545, 0.451, 0.333);
+      material.uniforms.u_atmosphereColor.value.setRGB(0.529, 0.808, 0.922);
+      material.uniforms.u_atmosphereDensity.value = 0.8;
+      material.uniforms.u_hasAtmosphere.value = true;
+      updateControls(0.7, '#8B7355', '#87CEEB', 0.8, true);
+    });
+
+    document.getElementById('oceanWorld').addEventListener('click', () => {
+      material.uniforms.u_waterCoverage.value = 0.95;
+      material.uniforms.u_baseColor.value.setRGB(0.4, 0.3, 0.25);
+      material.uniforms.u_atmosphereColor.value.setRGB(0.4, 0.7, 0.9);
+      material.uniforms.u_atmosphereDensity.value = 0.6;
+      material.uniforms.u_hasAtmosphere.value = true;
+      updateControls(0.95, '#66 4D40', '#66B3E6', 0.6, true);
+    });
+
+    document.getElementById('desertWorld').addEventListener('click', () => {
+      material.uniforms.u_waterCoverage.value = 0.15;
+      material.uniforms.u_baseColor.value.setRGB(0.7, 0.5, 0.3);
+      material.uniforms.u_atmosphereColor.value.setRGB(0.8, 0.7, 0.5);
+      material.uniforms.u_atmosphereDensity.value = 0.3;
+      material.uniforms.u_hasAtmosphere.value = true;
+      updateControls(0.15, '#B3804D', '#CCBF80', 0.3, true);
+    });
+
+    document.getElementById('alienOcean').addEventListener('click', () => {
+      material.uniforms.u_waterCoverage.value = 0.8;
+      material.uniforms.u_baseColor.value.setRGB(0.5, 0.3, 0.5);
+      material.uniforms.u_atmosphereColor.value.setRGB(0.7, 0.3, 0.9);
+      material.uniforms.u_atmosphereDensity.value = 0.9;
+      material.uniforms.u_hasAtmosphere.value = true;
+      updateControls(0.8, '#804D80', '#B34DE6', 0.9, true);
+    });
+
+    function updateControls(water, baseColor, atmosColor, atmosDensity, hasAtmos) {
+      document.getElementById('waterCoverage').value = water;
+      document.getElementById('waterValue').textContent = water.toFixed(2);
+      document.getElementById('baseColor').value = baseColor;
+      document.getElementById('atmosphereColor').value = atmosColor;
+      document.getElementById('atmosphereDensity').value = atmosDensity;
+      document.getElementById('atmosphereValue').textContent = atmosDensity.toFixed(2);
+      document.getElementById('hasAtmosphere').checked = hasAtmos;
+    }
+
+    // === Animation Loop ===
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      material.uniforms.u_cameraPosition.value.copy(camera.position);
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // === Window Resize ===
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galaxy Particle System - Test & Integration</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #000;
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #controls {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(20, 20, 30, 0.95);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      width: 320px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+    }
+
+    #info {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(20, 20, 30, 0.95);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      width: 280px;
+      font-size: 12px;
+    }
+
+    h2 {
+      margin: 0 0 15px 0;
+      font-size: 18px;
+      color: #00d4ff;
+      border-bottom: 2px solid #00d4ff;
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      margin: 25px 0 10px 0;
+      padding-top: 15px;
+      font-size: 14px;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-top: 1px solid #333;
+    }
+
+    h3:first-of-type {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+      color: #b0b0b0;
+    }
+
+    select, input[type="range"], input[type="color"], input[type="number"], button {
+      width: 100%;
+      padding: 8px;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    input[type="range"] {
+      padding: 0;
+      height: 6px;
+      -webkit-appearance: none;
+      background: #2a2a3e;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #00d4ff;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: #00d4ff;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    input[type="color"] {
+      height: 35px;
+      cursor: pointer;
+    }
+
+    button {
+      background: #00d4ff;
+      color: #000;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 5px;
+    }
+
+    button:hover {
+      background: #00b8e6;
+    }
+
+    button.secondary {
+      background: #444;
+      color: #fff;
+    }
+
+    button.secondary:hover {
+      background: #555;
+    }
+
+    .value {
+      float: right;
+      color: #00d4ff;
+      font-weight: 600;
+    }
+
+    .color-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 5px;
+    }
+
+    .color-input {
+      text-align: center;
+    }
+
+    .color-input label {
+      font-size: 10px;
+      margin-bottom: 3px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+
+    .info-label {
+      color: #888;
+    }
+
+    .info-value {
+      color: #00d4ff;
+      font-weight: 600;
+    }
+
+    #stats {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #444;
+    }
+
+    /* Panel toggle buttons */
+    .panel-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      transition: all 0.2s ease;
+    }
+
+    .panel-toggle:hover {
+      color: #00d4ff;
+      transform: scale(1.2);
+    }
+
+    #controls {
+      position: relative; /* For toggle button positioning */
+    }
+
+    /* Show UI button when panels are hidden */
+    #showUIBtn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 11px;
+      color: #666;
+      transition: color 0.2s ease;
+      z-index: 1000;
+      display: none;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #showUIBtn:hover {
+      color: #00d4ff;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <!-- Show UI button (appears when any panel is hidden) -->
+  <button id="showUIBtn" onclick="showAllPanels()">Show UI</button>
+
+  <div id="controls">
+    <button class="panel-toggle" onclick="toggleControls()" title="Hide Controls">×</button>
+    <h2>Galaxy Configuration</h2>
+
+    <!-- Multi-Layer Toggle -->
+    <div class="control-group">
+      <label style="display: flex; align-items: center; cursor: pointer;">
+        <input type="checkbox" id="multiLayer" style="width: auto; margin-right: 8px;">
+        <span>Multi-Layer Mode</span>
+      </label>
+    </div>
+
+    <!-- Layer Selector (shown in multi-layer mode) -->
+    <div class="control-group" id="layerSelector-group" style="display: none;">
+      <label>Active Layer</label>
+      <select id="layerSelector">
+        <option value="0">Layer 1</option>
+        <option value="1">Layer 2</option>
+        <option value="2">Layer 3</option>
+      </select>
+    </div>
+
+    <!-- Galaxy Type -->
+    <div class="control-group">
+      <label>Galaxy Type</label>
+      <select id="galaxyType">
+        <option value="spiral">Spiral (Milky Way type)</option>
+        <option value="barred">Barred Spiral (NGC 1300 type)</option>
+        <option value="elliptical">Elliptical (M87 type)</option>
+        <option value="irregular">Irregular (LMC type)</option>
+        <option value="ring">Ring (Hoag's Object type)</option>
+      </select>
+    </div>
+
+    <!-- Layer Visibility Toggle (shown in multi-layer mode) -->
+    <div class="control-group" id="layerVisibility-group" style="display: none;">
+      <button onclick="toggleLayerVisibility()" id="layerVisibilityBtn">Hide This Layer</button>
+    </div>
+
+    <!-- Particle Count -->
+    <div class="control-group">
+      <label>Particle Count: <span class="value" id="particleCount-value">5000</span></label>
+      <input type="range" id="particleCount" min="1000" max="50000" value="5000" step="1000">
+    </div>
+
+    <h3>Structure</h3>
+
+    <!-- Arm Count (for spiral types) -->
+    <div class="control-group" id="armCount-group">
+      <label>Spiral Arms: <span class="value" id="armCount-value">3</span></label>
+      <input type="range" id="armCount" min="2" max="5" value="3" step="1">
+    </div>
+
+    <!-- Spiral Tightness -->
+    <div class="control-group" id="tightness-group">
+      <label>Spiral Tightness: <span class="value" id="tightness-value">0.60</span></label>
+      <input type="range" id="tightness" min="0.3" max="0.9" value="0.6" step="0.05">
+    </div>
+
+    <!-- Ring Galaxy Controls -->
+    <div class="control-group" id="ringInner-group" style="display: none;">
+      <label>Ring Inner Radius: <span class="value" id="ringInner-value">0.40</span></label>
+      <input type="range" id="ringInner" min="0.0" max="1.0" value="0.4" step="0.05">
+    </div>
+
+    <div class="control-group" id="ringOuter-group" style="display: none;">
+      <label>Ring Outer Radius: <span class="value" id="ringOuter-value">0.90</span></label>
+      <input type="range" id="ringOuter" min="0.0" max="1.0" value="0.9" step="0.05">
+    </div>
+
+    <!-- Irregular Galaxy Control -->
+    <div class="control-group" id="chaos-group" style="display: none;">
+      <label>Chaos Level: <span class="value" id="chaos-value">0.40</span></label>
+      <input type="range" id="chaos" min="0.0" max="1.0" value="0.4" step="0.05">
+    </div>
+
+    <!-- Elliptical Galaxy Control -->
+    <div class="control-group" id="flatten-group" style="display: none;">
+      <label>Vertical Flatten: <span class="value" id="flatten-value">0.60</span></label>
+      <input type="range" id="flatten" min="0.2" max="1.0" value="0.6" step="0.05">
+    </div>
+
+    <!-- Galaxy Size -->
+    <div class="control-group">
+      <label>Galaxy Size: <span class="value" id="size-value">55</span></label>
+      <input type="range" id="size" min="30" max="100" value="55" step="5">
+    </div>
+
+    <h3>Colors</h3>
+
+    <!-- Color Pickers -->
+    <div class="control-group">
+      <div class="color-group">
+        <div class="color-input">
+          <label>Core</label>
+          <input type="color" id="coreColor" value="#ffccee">
+        </div>
+        <div class="color-input">
+          <label>Middle</label>
+          <input type="color" id="midColor" value="#cc66dd">
+        </div>
+        <div class="color-input">
+          <label>Edge</label>
+          <input type="color" id="edgeColor" value="#663399">
+        </div>
+      </div>
+    </div>
+
+    <h3>Particle Appearance</h3>
+
+    <!-- Particle Size Min -->
+    <div class="control-group">
+      <label>Particle Size Min: <span class="value" id="particleSizeMin-value">0.3</span></label>
+      <input type="range" id="particleSizeMin" min="0.1" max="2.0" value="0.3" step="0.1">
+    </div>
+
+    <!-- Particle Size Max -->
+    <div class="control-group">
+      <label>Particle Size Max: <span class="value" id="particleSizeMax-value">3.0</span></label>
+      <input type="range" id="particleSizeMax" min="1.0" max="8.0" value="3.0" step="0.5">
+    </div>
+
+    <!-- Particle Brightness -->
+    <div class="control-group">
+      <label>Particle Brightness: <span class="value" id="particleBrightness-value">1.0</span></label>
+      <input type="range" id="particleBrightness" min="0.1" max="2.0" value="1.0" step="0.1">
+    </div>
+
+    <h3>Animation</h3>
+
+    <!-- Animation Speed -->
+    <div class="control-group">
+      <label>Motion Speed: <span class="value" id="animSpeed-value">0.50</span></label>
+      <input type="range" id="animSpeed" min="0" max="2" value="0.5" step="0.1">
+    </div>
+
+    <!-- Rotation Speed -->
+    <div class="control-group">
+      <label>Rotation Speed: <span class="value" id="rotSpeed-value">0.010</span></label>
+      <input type="range" id="rotSpeed" min="0" max="0.05" value="0.01" step="0.005">
+    </div>
+
+    <h3>System Markers</h3>
+
+    <!-- System Marker Controls -->
+    <div class="control-group">
+      <label>Explorable Systems: <span class="value" id="systemCount-value">0</span></label>
+      <input type="number" id="systemCount" min="0" max="50" value="32" step="1">
+    </div>
+
+    <div class="control-group">
+      <label>Marker Size: <span class="value" id="markerSize-value">4.0</span></label>
+      <input type="range" id="markerSize" min="1" max="10" value="4" step="0.5">
+    </div>
+
+    <div class="control-group">
+      <label>Marker Color</label>
+      <input type="color" id="markerColor" value="#fff3b3">
+    </div>
+
+    <div class="control-group">
+      <label>Marker Pulse Speed: <span class="value" id="markerPulse-value">2.0</span></label>
+      <input type="range" id="markerPulse" min="0.0" max="4.0" value="2.0" step="0.1">
+    </div>
+
+    <button onclick="addSystemMarkers()">Add System Markers</button>
+    <button onclick="clearSystemMarkers()" class="secondary">Clear Markers</button>
+    <button onclick="toggleMarkers()" class="secondary" id="toggleMarkersBtn">Hide Markers</button>
+
+    <div class="control-group" style="margin-top: 10px;">
+      <label style="display: flex; align-items: center; cursor: pointer;">
+        <input type="checkbox" id="markersClickable" style="width: auto; margin-right: 8px;" checked>
+        <span>Markers Clickable</span>
+      </label>
+    </div>
+
+    <h3>Presets</h3>
+    <button onclick="loadPreset('barredSpiral')">Barred Spiral</button>
+    <button onclick="loadPreset('tightSpiral')" class="secondary">Tight Spiral</button>
+    <button onclick="loadPreset('largeElliptical')" class="secondary">Large Elliptical</button>
+    <button onclick="loadPreset('looseSpiral')" class="secondary">Loose Spiral</button>
+  </div>
+
+  <div id="info">
+    <button class="panel-toggle" onclick="toggleInfo()" title="Hide Info">×</button>
+    <h2>Info</h2>
+    <div class="info-row" id="info-layer-row" style="display: none;">
+      <span class="info-label">Active Layer:</span>
+      <span class="info-value" id="info-layer">Layer 1</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Type:</span>
+      <span class="info-value" id="info-type">Spiral</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Particles:</span>
+      <span class="info-value" id="info-particles">5,000</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Systems:</span>
+      <span class="info-value" id="info-systems">0</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">FPS:</span>
+      <span class="info-value" id="info-fps">60</span>
+    </div>
+
+    <div id="stats">
+      <h3>Instructions</h3>
+      <p style="font-size: 11px; line-height: 1.6; color: #aaa;">
+        • Select galaxy type<br>
+        • Adjust parameters<br>
+        • Add system markers<br>
+        • Click markers to test<br>
+        • Use mouse to orbit camera<br>
+        • Enable Multi-Layer Mode to combine galaxy types with different colors
+      </p>
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.159.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.159.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GalaxyParticleSystem } from './galaxy-particle-system.js';
+
+    // ============================================================================
+    // SCENE SETUP
+    // ============================================================================
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+    camera.position.set(0, 120, 70);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.enablePan = false;
+
+    // ============================================================================
+    // GALAXY SYSTEM
+    // ============================================================================
+
+    let galaxyLayers = [
+      // Layer 1: Spiral (default, visible)
+      new GalaxyParticleSystem({
+        type: 'spiral',
+        particleCount: 5000,
+        armCount: 3,
+        spiralTightness: 0.6,
+      }),
+      // Layer 2: Elliptical (hidden by default)
+      new GalaxyParticleSystem({
+        type: 'elliptical',
+        particleCount: 3000,
+        coreColor: new THREE.Color('#e6f2ff'),
+        midColor: new THREE.Color('#99ccff'),
+        edgeColor: new THREE.Color('#4d79ff'),
+        particleSizeMin: 0.2,
+        particleSizeMax: 2.0,
+        particleBrightness: 0.5,
+      }),
+      // Layer 3: Ring (hidden by default)
+      new GalaxyParticleSystem({
+        type: 'ring',
+        particleCount: 2000,
+        coreColor: new THREE.Color('#ffe6cc'),
+        midColor: new THREE.Color('#ffcc99'),
+        edgeColor: new THREE.Color('#ff9966'),
+        ringInnerRadius: 0.5,
+        ringOuterRadius: 0.8,
+        particleSizeMin: 0.3,
+        particleSizeMax: 2.5,
+        particleBrightness: 0.7,
+      })
+    ];
+
+    // Add all layers to scene (layers 2 and 3 initially hidden)
+    scene.add(galaxyLayers[0].getGroup());
+    scene.add(galaxyLayers[1].getGroup());
+    scene.add(galaxyLayers[2].getGroup());
+    galaxyLayers[1].getGroup().visible = false;
+    galaxyLayers[2].getGroup().visible = false;
+
+    let multiLayerMode = false;
+    let activeLayer = 0;
+    let markersVisible = true;
+    let systemMarkers = [];
+    let markerPulseFrequency = 2.0; // Default pulse frequency
+
+    // Independent marker group (not tied to any galaxy layer)
+    let markerGroup = new THREE.Group();
+    markerGroup.name = 'independentMarkers';
+    scene.add(markerGroup);
+    let markerPoints = null;
+
+    // ============================================================================
+    // RAYCASTING FOR MARKER SELECTION
+    // ============================================================================
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.params.Points.threshold = 2;
+    const mouse = new THREE.Vector2();
+
+    renderer.domElement.addEventListener('click', (event) => {
+      // Check if markers are clickable before processing
+      const markersClickable = document.getElementById('markersClickable').checked;
+      if (!markersClickable) {
+        return; // Skip marker click detection
+      }
+
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      // Check independent marker group
+      if (markerPoints && markerPoints.visible) {
+        const intersects = raycaster.intersectObject(markerPoints);
+        if (intersects.length > 0) {
+          const index = intersects[0].index;
+          const marker = systemMarkers[index];
+          console.log('Clicked system marker:', marker);
+          alert(`System ${index + 1} clicked!\nPosition: ${marker.position.x.toFixed(1)}, ${marker.position.y.toFixed(1)}, ${marker.position.z.toFixed(1)}`);
+        }
+      }
+    });
+
+    // ============================================================================
+    // UI CONTROLS
+    // ============================================================================
+
+    function updateGalaxy() {
+      const config = {
+        type: document.getElementById('galaxyType').value,
+        particleCount: parseInt(document.getElementById('particleCount').value),
+        armCount: parseInt(document.getElementById('armCount').value),
+        spiralTightness: parseFloat(document.getElementById('tightness').value),
+        coreColor: new THREE.Color(document.getElementById('coreColor').value),
+        midColor: new THREE.Color(document.getElementById('midColor').value),
+        edgeColor: new THREE.Color(document.getElementById('edgeColor').value),
+        size: parseFloat(document.getElementById('size').value),
+        animationSpeed: parseFloat(document.getElementById('animSpeed').value),
+        rotationSpeed: parseFloat(document.getElementById('rotSpeed').value),
+        // Ring parameters
+        ringInnerRadius: parseFloat(document.getElementById('ringInner').value),
+        ringOuterRadius: parseFloat(document.getElementById('ringOuter').value),
+        // Irregular parameter
+        irregularChaos: parseFloat(document.getElementById('chaos').value),
+        // Elliptical parameter
+        ellipticalFlatten: parseFloat(document.getElementById('flatten').value),
+        // Particle appearance parameters
+        particleSizeMin: parseFloat(document.getElementById('particleSizeMin').value),
+        particleSizeMax: parseFloat(document.getElementById('particleSizeMax').value),
+        particleBrightness: parseFloat(document.getElementById('particleBrightness').value),
+      };
+
+      // Update the active layer
+      galaxyLayers[activeLayer].updateConfig(config);
+      updateInfo();
+      updateControlVisibility(config.type);
+    }
+
+    function getActiveGalaxy() {
+      return galaxyLayers[activeLayer];
+    }
+
+    function updateControlVisibility(type) {
+      const armGroup = document.getElementById('armCount-group');
+      const tightGroup = document.getElementById('tightness-group');
+      const ringInnerGroup = document.getElementById('ringInner-group');
+      const ringOuterGroup = document.getElementById('ringOuter-group');
+      const chaosGroup = document.getElementById('chaos-group');
+      const flattenGroup = document.getElementById('flatten-group');
+
+      // Hide all type-specific controls first
+      armGroup.style.display = 'none';
+      tightGroup.style.display = 'none';
+      ringInnerGroup.style.display = 'none';
+      ringOuterGroup.style.display = 'none';
+      chaosGroup.style.display = 'none';
+      flattenGroup.style.display = 'none';
+
+      // Show controls based on galaxy type
+      if (type === 'spiral' || type === 'barred') {
+        armGroup.style.display = 'block';
+        tightGroup.style.display = 'block';
+      } else if (type === 'ring') {
+        ringInnerGroup.style.display = 'block';
+        ringOuterGroup.style.display = 'block';
+      } else if (type === 'irregular') {
+        chaosGroup.style.display = 'block';
+      } else if (type === 'elliptical') {
+        flattenGroup.style.display = 'block';
+      }
+    }
+
+    function updateInfo() {
+      const type = document.getElementById('galaxyType').value;
+      const particles = document.getElementById('particleCount').value;
+
+      document.getElementById('info-type').textContent = type.charAt(0).toUpperCase() + type.slice(1);
+      document.getElementById('info-particles').textContent = parseInt(particles).toLocaleString();
+      document.getElementById('info-systems').textContent = systemMarkers.length;
+
+      if (multiLayerMode) {
+        document.getElementById('info-layer').textContent = `Layer ${activeLayer + 1}`;
+      }
+    }
+
+    // Add event listeners
+    document.getElementById('galaxyType').addEventListener('change', updateGalaxy);
+    document.getElementById('particleCount').addEventListener('input', (e) => {
+      document.getElementById('particleCount-value').textContent = e.target.value;
+      updateGalaxy();
+    });
+    document.getElementById('armCount').addEventListener('input', (e) => {
+      document.getElementById('armCount-value').textContent = e.target.value;
+      updateGalaxy();
+    });
+    document.getElementById('tightness').addEventListener('input', (e) => {
+      document.getElementById('tightness-value').textContent = parseFloat(e.target.value).toFixed(2);
+      updateGalaxy();
+    });
+    document.getElementById('size').addEventListener('input', (e) => {
+      document.getElementById('size-value').textContent = e.target.value;
+      updateGalaxy();
+    });
+    document.getElementById('animSpeed').addEventListener('input', (e) => {
+      document.getElementById('animSpeed-value').textContent = parseFloat(e.target.value).toFixed(2);
+      galaxy.config.animationSpeed = parseFloat(e.target.value);
+    });
+    document.getElementById('rotSpeed').addEventListener('input', (e) => {
+      document.getElementById('rotSpeed-value').textContent = parseFloat(e.target.value).toFixed(3);
+      galaxy.config.rotationSpeed = parseFloat(e.target.value);
+    });
+    document.getElementById('coreColor').addEventListener('input', updateGalaxy);
+    document.getElementById('midColor').addEventListener('input', updateGalaxy);
+    document.getElementById('edgeColor').addEventListener('input', updateGalaxy);
+
+    // Particle appearance controls
+    document.getElementById('particleSizeMin').addEventListener('input', (e) => {
+      document.getElementById('particleSizeMin-value').textContent = parseFloat(e.target.value).toFixed(1);
+      updateGalaxy();
+    });
+    document.getElementById('particleSizeMax').addEventListener('input', (e) => {
+      document.getElementById('particleSizeMax-value').textContent = parseFloat(e.target.value).toFixed(1);
+      updateGalaxy();
+    });
+    document.getElementById('particleBrightness').addEventListener('input', (e) => {
+      document.getElementById('particleBrightness-value').textContent = parseFloat(e.target.value).toFixed(1);
+      updateGalaxy();
+    });
+
+    // Ring galaxy controls
+    document.getElementById('ringInner').addEventListener('input', (e) => {
+      document.getElementById('ringInner-value').textContent = parseFloat(e.target.value).toFixed(2);
+      updateGalaxy();
+    });
+    document.getElementById('ringOuter').addEventListener('input', (e) => {
+      document.getElementById('ringOuter-value').textContent = parseFloat(e.target.value).toFixed(2);
+      updateGalaxy();
+    });
+
+    // Irregular galaxy control
+    document.getElementById('chaos').addEventListener('input', (e) => {
+      document.getElementById('chaos-value').textContent = parseFloat(e.target.value).toFixed(2);
+      updateGalaxy();
+    });
+
+    // Elliptical galaxy control
+    document.getElementById('flatten').addEventListener('input', (e) => {
+      document.getElementById('flatten-value').textContent = parseFloat(e.target.value).toFixed(2);
+      updateGalaxy();
+    });
+
+    // Multi-layer mode controls
+    document.getElementById('multiLayer').addEventListener('change', (e) => {
+      multiLayerMode = e.target.checked;
+      document.getElementById('layerSelector-group').style.display = multiLayerMode ? 'block' : 'none';
+      document.getElementById('layerVisibility-group').style.display = multiLayerMode ? 'block' : 'none';
+      document.getElementById('info-layer-row').style.display = multiLayerMode ? 'flex' : 'none';
+
+      if (!multiLayerMode) {
+        // When disabling multi-layer mode, hide layers 2 and 3 and switch to layer 1
+        galaxyLayers[1].getGroup().visible = false;
+        galaxyLayers[2].getGroup().visible = false;
+        activeLayer = 0;
+        loadLayerToUI(0);
+      }
+      // When enabling multi-layer mode, layers 2 and 3 stay hidden until user toggles them on
+      updateInfo();
+    });
+
+    document.getElementById('layerSelector').addEventListener('change', (e) => {
+      activeLayer = parseInt(e.target.value);
+      loadLayerToUI(activeLayer);
+      updateLayerVisibilityButton();
+    });
+
+    function loadLayerToUI(layerIndex) {
+      const galaxy = galaxyLayers[layerIndex];
+      const config = galaxy.config;
+
+      // Update all UI controls to match the layer's config
+      document.getElementById('galaxyType').value = config.type;
+      document.getElementById('particleCount').value = config.particleCount;
+      document.getElementById('particleCount-value').textContent = config.particleCount;
+      document.getElementById('armCount').value = config.armCount;
+      document.getElementById('armCount-value').textContent = config.armCount;
+      document.getElementById('tightness').value = config.spiralTightness;
+      document.getElementById('tightness-value').textContent = config.spiralTightness.toFixed(2);
+
+      // Colors
+      document.getElementById('coreColor').value = '#' + config.coreColor.getHexString();
+      document.getElementById('midColor').value = '#' + config.midColor.getHexString();
+      document.getElementById('edgeColor').value = '#' + config.edgeColor.getHexString();
+
+      document.getElementById('size').value = config.size;
+      document.getElementById('size-value').textContent = config.size;
+      document.getElementById('animSpeed').value = config.animationSpeed;
+      document.getElementById('animSpeed-value').textContent = config.animationSpeed.toFixed(2);
+      document.getElementById('rotSpeed').value = config.rotationSpeed;
+      document.getElementById('rotSpeed-value').textContent = config.rotationSpeed.toFixed(3);
+
+      // Type-specific controls
+      document.getElementById('ringInner').value = config.ringInnerRadius;
+      document.getElementById('ringInner-value').textContent = config.ringInnerRadius.toFixed(2);
+      document.getElementById('ringOuter').value = config.ringOuterRadius;
+      document.getElementById('ringOuter-value').textContent = config.ringOuterRadius.toFixed(2);
+      document.getElementById('chaos').value = config.irregularChaos;
+      document.getElementById('chaos-value').textContent = config.irregularChaos.toFixed(2);
+      document.getElementById('flatten').value = config.ellipticalFlatten;
+      document.getElementById('flatten-value').textContent = config.ellipticalFlatten.toFixed(2);
+
+      // Particle appearance controls
+      document.getElementById('particleSizeMin').value = config.particleSizeMin;
+      document.getElementById('particleSizeMin-value').textContent = config.particleSizeMin.toFixed(1);
+      document.getElementById('particleSizeMax').value = config.particleSizeMax;
+      document.getElementById('particleSizeMax-value').textContent = config.particleSizeMax.toFixed(1);
+      document.getElementById('particleBrightness').value = config.particleBrightness;
+      document.getElementById('particleBrightness-value').textContent = config.particleBrightness.toFixed(1);
+
+      updateControlVisibility(config.type);
+      updateInfo();
+    }
+
+    window.toggleLayerVisibility = function() {
+      const layer = galaxyLayers[activeLayer];
+      layer.getGroup().visible = !layer.getGroup().visible;
+      updateLayerVisibilityButton();
+    };
+
+    function updateLayerVisibilityButton() {
+      const visible = galaxyLayers[activeLayer].getGroup().visible;
+      document.getElementById('layerVisibilityBtn').textContent = visible ? 'Hide This Layer' : 'Show This Layer';
+    }
+
+    // Marker controls
+    document.getElementById('markerSize').addEventListener('input', (e) => {
+      document.getElementById('markerSize-value').textContent = parseFloat(e.target.value).toFixed(1);
+    });
+
+    document.getElementById('markerPulse').addEventListener('input', (e) => {
+      markerPulseFrequency = parseFloat(e.target.value);
+      document.getElementById('markerPulse-value').textContent = markerPulseFrequency.toFixed(1);
+
+      // Update the uniform in the marker material if it exists
+      if (markerPoints && markerPoints.material.uniforms.pulseFrequency) {
+        markerPoints.material.uniforms.pulseFrequency.value = markerPulseFrequency;
+      }
+    });
+
+    // System marker functions
+    window.addSystemMarkers = function() {
+      const count = parseInt(document.getElementById('systemCount').value);
+      const markerSize = parseFloat(document.getElementById('markerSize').value);
+      const markerColor = new THREE.Color(document.getElementById('markerColor').value);
+
+      systemMarkers = [];
+
+      const galaxy = getActiveGalaxy();
+      const galaxySize = galaxy.config.size;
+      const galaxyType = galaxy.config.type;
+
+      for (let i = 0; i < count; i++) {
+        let position;
+
+        // Position markers within galaxy structure
+        if (galaxyType === 'spiral' || galaxyType === 'barred') {
+          // SPIRAL: Follow spiral arm structure (same algorithm as particle generation)
+          const armCount = galaxy.config.armCount;
+          const spiralTightness = galaxy.config.spiralTightness;
+
+          // Radius with concentration toward center (less extreme than particles)
+          const radius = Math.pow(Math.random(), 5) * galaxySize * 0.8;
+
+          // Choose which arm to place marker on
+          const armIndex = Math.floor(Math.random() * armCount);
+          const armAngle = (armIndex / armCount) * Math.PI * 2;
+
+          // Logarithmic spiral calculation
+          const spiralOffset = Math.log(radius / 5 + 1) * spiralTightness * 10;
+          const baseAngle = armAngle + spiralOffset;
+
+          // Small scatter to keep markers on arms but not perfectly aligned
+          const armWidth = 0.3; // Tighter than particles (was 1.2)
+          const scatter = (Math.random() - 0.5) * armWidth;
+
+          // Add slight noise for natural clustering
+          const noise = Math.sin(baseAngle * 4) * Math.cos(radius * 0.2) * 2;
+          const angle = baseAngle + scatter + noise * 0.1;
+
+          // Convert to cartesian
+          const x = radius * Math.cos(angle);
+          const z = radius * Math.sin(angle);
+
+          // Y position - keep relatively flat
+          const diskThickness = galaxy.config.diskThickness;
+          const thickness = Math.pow(1 - (radius / galaxySize), 1.5) * diskThickness;
+          const y = (Math.random() - 0.5) * thickness;
+
+          position = new THREE.Vector3(x, y, z);
+        } else if (galaxyType === 'ring') {
+          // RING: Empty center with outer ring (using configured bounds)
+          const minR = galaxySize * galaxy.config.ringInnerRadius;
+          const maxR = galaxySize * galaxy.config.ringOuterRadius;
+          const radius = minR + Math.random() * (maxR - minR);
+          const angle = Math.random() * Math.PI * 2;
+
+          const diskThickness = galaxy.config.diskThickness;
+          position = new THREE.Vector3(
+            radius * Math.cos(angle),
+            (Math.random() - 0.5) * diskThickness * 0.5,
+            radius * Math.sin(angle)
+          );
+        } else if (galaxyType === 'irregular') {
+          // IRREGULAR: Chaotic multi-cluster distribution (using configured chaos level)
+          const clusterCount = 3;
+          const clusterIndex = Math.floor(Math.random() * clusterCount);
+          const clusterAngle = (clusterIndex / clusterCount) * Math.PI * 2 + (Math.random() - 0.5) * Math.PI;
+          const clusterDistance = Math.random() * galaxySize * 0.5;
+
+          // Use configured chaos level (slightly reduced for markers)
+          const chaosLevel = galaxy.config.irregularChaos * 0.75;
+          const scatter = (Math.random() - 0.5) * galaxySize * chaosLevel;
+          const radius = clusterDistance + scatter;
+
+          const angle = clusterAngle + (Math.random() - 0.5) * Math.PI;
+
+          const x = radius * Math.cos(angle);
+          const z = radius * Math.sin(angle);
+          const diskThickness = galaxy.config.diskThickness;
+          const y = (Math.random() - 0.5) * diskThickness * 2;
+
+          position = new THREE.Vector3(x, y, z);
+        } else {
+          // ELLIPTICAL: Spherical distribution (using configured flatten factor)
+          const radius = Math.pow(Math.random(), 2.5) * galaxySize * 0.7;
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(2 * Math.random() - 1);
+
+          // Use configured flatten factor
+          const flattenFactor = galaxy.config.ellipticalFlatten;
+          position = new THREE.Vector3(
+            radius * Math.sin(phi) * Math.cos(theta),
+            radius * Math.sin(phi) * Math.sin(theta) * flattenFactor,
+            radius * Math.cos(phi)
+          );
+        }
+
+        // Transform position from galaxy local space to world space
+        const worldPosition = position.clone();
+        galaxy.getGroup().localToWorld(worldPosition);
+
+        systemMarkers.push({
+          position: worldPosition,
+          color: markerColor.clone(), // Use configured color
+          size: markerSize, // Use configured size
+          data: { name: `System ${i + 1}`, index: i }
+        });
+      }
+
+      // Create independent markers (not tied to galaxy layer)
+      createIndependentMarkers(systemMarkers);
+      document.getElementById('systemCount-value').textContent = count;
+      updateInfo();
+    };
+
+    function createIndependentMarkers(markers) {
+      // Remove old markers if they exist
+      if (markerPoints) {
+        markerGroup.remove(markerPoints);
+        markerPoints.geometry.dispose();
+        markerPoints.material.dispose();
+      }
+
+      if (markers.length === 0) {
+        markerPoints = null;
+        return;
+      }
+
+      const positions = [];
+      const colors = [];
+      const sizes = [];
+
+      markers.forEach(marker => {
+        positions.push(marker.position.x, marker.position.y, marker.position.z);
+        colors.push(marker.color.r, marker.color.g, marker.color.b);
+        sizes.push(marker.size);
+      });
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+
+      // Marker material - brighter, more visible with pulsing effect
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 },
+          pulseFrequency: { value: markerPulseFrequency }
+        },
+        vertexShader: `
+          uniform float time;
+          uniform float pulseFrequency;
+          attribute float size;
+          attribute vec3 color;
+          varying vec3 vColor;
+
+          void main() {
+            vColor = color;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+
+            // Pulsing effect with configurable frequency
+            // When pulseFrequency = 0, pulse = 1.0 (no pulsing)
+            float pulse = 1.0 + sin(time * pulseFrequency) * 0.2;
+            gl_PointSize = size * pulse * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+
+          void main() {
+            vec2 center = gl_PointCoord - vec2(0.5);
+            float dist = length(center);
+
+            // Sharp core with glow
+            float core = 1.0 - smoothstep(0.0, 0.2, dist);
+            float glow = smoothstep(0.5, 0.0, dist);
+            float alpha = core + glow * 0.5;
+
+            gl_FragColor = vec4(vColor * 1.3, alpha);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+
+      markerPoints = new THREE.Points(geometry, material);
+      markerPoints.name = 'systemMarkers';
+
+      // Apply the same tilt as galaxy particles (-36 degrees on X-axis)
+      markerPoints.rotation.x = -Math.PI / 5;
+
+      markerGroup.add(markerPoints);
+    }
+
+    window.clearSystemMarkers = function() {
+      systemMarkers = [];
+      createIndependentMarkers([]);
+      document.getElementById('systemCount-value').textContent = '0';
+      updateInfo();
+    };
+
+    window.toggleMarkers = function() {
+      markersVisible = !markersVisible;
+      if (markerPoints) {
+        markerPoints.visible = markersVisible;
+      }
+      document.getElementById('toggleMarkersBtn').textContent = markersVisible ? 'Hide Markers' : 'Show Markers';
+    };
+
+    // Panel visibility toggles
+    window.toggleControls = function() {
+      const controlsPanel = document.getElementById('controls');
+      controlsPanel.style.display = controlsPanel.style.display === 'none' ? 'block' : 'none';
+      updateShowUIButton();
+    };
+
+    window.toggleInfo = function() {
+      const infoPanel = document.getElementById('info');
+      infoPanel.style.display = infoPanel.style.display === 'none' ? 'block' : 'none';
+      updateShowUIButton();
+    };
+
+    window.showAllPanels = function() {
+      document.getElementById('controls').style.display = 'block';
+      document.getElementById('info').style.display = 'block';
+      document.getElementById('showUIBtn').style.display = 'none';
+    };
+
+    function updateShowUIButton() {
+      const controlsHidden = document.getElementById('controls').style.display === 'none';
+      const infoHidden = document.getElementById('info').style.display === 'none';
+      const showUIBtn = document.getElementById('showUIBtn');
+
+      // Show "SHOW UI" button if either panel is hidden
+      showUIBtn.style.display = (controlsHidden || infoHidden) ? 'block' : 'none';
+    }
+
+    // Presets
+    window.loadPreset = function(name) {
+      const presets = {
+        barredSpiral: {
+          type: 'barred',
+          particleCount: 8000,
+          armCount: 4,
+          tightness: 0.55,
+          coreColor: '#fff5e6',
+          midColor: '#e6b366',
+          edgeColor: '#8c6239',
+          size: 65
+        },
+        tightSpiral: {
+          type: 'spiral',
+          particleCount: 10000,
+          armCount: 2,
+          tightness: 0.7,
+          coreColor: '#e6f2ff',
+          midColor: '#99ccff',
+          edgeColor: '#4d79ff',
+          size: 70
+        },
+        largeElliptical: {
+          type: 'elliptical',
+          particleCount: 6000,
+          coreColor: '#fff0cc',
+          midColor: '#ffcc66',
+          edgeColor: '#cc9933',
+          size: 50
+        },
+        looseSpiral: {
+          type: 'spiral',
+          particleCount: 7000,
+          armCount: 2,
+          tightness: 0.8,
+          coreColor: '#ffe6ff',
+          midColor: '#ff99ff',
+          edgeColor: '#cc66cc',
+          size: 60
+        }
+      };
+
+      const preset = presets[name];
+      if (preset) {
+        document.getElementById('galaxyType').value = preset.type;
+        document.getElementById('particleCount').value = preset.particleCount;
+        document.getElementById('particleCount-value').textContent = preset.particleCount;
+        if (preset.armCount) {
+          document.getElementById('armCount').value = preset.armCount;
+          document.getElementById('armCount-value').textContent = preset.armCount;
+        }
+        if (preset.tightness) {
+          document.getElementById('tightness').value = preset.tightness;
+          document.getElementById('tightness-value').textContent = preset.tightness.toFixed(2);
+        }
+        document.getElementById('coreColor').value = preset.coreColor;
+        document.getElementById('midColor').value = preset.midColor;
+        document.getElementById('edgeColor').value = preset.edgeColor;
+        document.getElementById('size').value = preset.size;
+        document.getElementById('size-value').textContent = preset.size;
+
+        updateGalaxy();
+      }
+    };
+
+    // ============================================================================
+    // RESIZE HANDLER
+    // ============================================================================
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ============================================================================
+    // ANIMATION LOOP
+    // ============================================================================
+
+    const clock = new THREE.Clock();
+    let lastTime = performance.now();
+    let frameCount = 0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const deltaTime = clock.getDelta();
+
+      // Update all galaxy layers
+      galaxyLayers.forEach(layer => {
+        layer.update(deltaTime);
+      });
+
+      // Update independent marker time uniform
+      if (markerPoints && markerPoints.material.uniforms.time) {
+        markerPoints.material.uniforms.time.value += deltaTime;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+
+      // FPS counter
+      frameCount++;
+      const now = performance.now();
+      if (now - lastTime >= 1000) {
+        document.getElementById('info-fps').textContent = frameCount;
+        frameCount = 0;
+        lastTime = now;
+      }
+    }
+
+    animate();
+    updateInfo();
+    updateControlVisibility('spiral'); // Initialize control visibility
+  </script>
+</body>
+</html>
