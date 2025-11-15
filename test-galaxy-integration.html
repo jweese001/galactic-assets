@@ -377,6 +377,26 @@
       <input type="range" id="particleBrightness" min="0.1" max="2.0" value="1.0" step="0.1">
     </div>
 
+    <h3>Core Controls</h3>
+
+    <!-- Core Brightness -->
+    <div class="control-group">
+      <label>Core Brightness: <span class="value" id="coreBrightness-value">0.50</span></label>
+      <input type="range" id="coreBrightness" min="0.0" max="1.0" value="0.5" step="0.05">
+    </div>
+
+    <!-- Core Alpha Falloff -->
+    <div class="control-group">
+      <label>Core Alpha Falloff: <span class="value" id="coreAlphaFalloff-value">0.60</span></label>
+      <input type="range" id="coreAlphaFalloff" min="0.0" max="1.0" value="0.6" step="0.05">
+    </div>
+
+    <!-- Core Exclusion Radius -->
+    <div class="control-group">
+      <label>Core Exclusion Radius: <span class="value" id="coreExclusionRadius-value">0.00</span></label>
+      <input type="range" id="coreExclusionRadius" min="0.0" max="0.2" value="0.0" step="0.01">
+    </div>
+
     <h3>Animation</h3>
 
     <!-- Animation Speed -->
@@ -619,6 +639,10 @@
         particleSizeMin: parseFloat(document.getElementById('particleSizeMin').value),
         particleSizeMax: parseFloat(document.getElementById('particleSizeMax').value),
         particleBrightness: parseFloat(document.getElementById('particleBrightness').value),
+        // Core control parameters
+        coreBrightness: parseFloat(document.getElementById('coreBrightness').value),
+        coreAlphaFalloff: parseFloat(document.getElementById('coreAlphaFalloff').value),
+        coreExclusionRadius: parseFloat(document.getElementById('coreExclusionRadius').value),
       };
 
       // Update the active layer
@@ -718,6 +742,20 @@
       updateGalaxy();
     });
 
+    // Core control listeners
+    document.getElementById('coreBrightness').addEventListener('input', (e) => {
+      document.getElementById('coreBrightness-value').textContent = parseFloat(e.target.value).toFixed(2);
+      updateGalaxy();
+    });
+    document.getElementById('coreAlphaFalloff').addEventListener('input', (e) => {
+      document.getElementById('coreAlphaFalloff-value').textContent = parseFloat(e.target.value).toFixed(2);
+      updateGalaxy();
+    });
+    document.getElementById('coreExclusionRadius').addEventListener('input', (e) => {
+      document.getElementById('coreExclusionRadius-value').textContent = parseFloat(e.target.value).toFixed(2);
+      updateGalaxy();
+    });
+
     // Ring galaxy controls
     document.getElementById('ringInner').addEventListener('input', (e) => {
       document.getElementById('ringInner-value').textContent = parseFloat(e.target.value).toFixed(2);
@@ -806,6 +844,20 @@
       document.getElementById('particleSizeMax-value').textContent = config.particleSizeMax.toFixed(1);
       document.getElementById('particleBrightness').value = config.particleBrightness;
       document.getElementById('particleBrightness-value').textContent = config.particleBrightness.toFixed(1);
+
+      // Core controls
+      if (config.coreBrightness !== undefined) {
+        document.getElementById('coreBrightness').value = config.coreBrightness;
+        document.getElementById('coreBrightness-value').textContent = config.coreBrightness.toFixed(2);
+      }
+      if (config.coreAlphaFalloff !== undefined) {
+        document.getElementById('coreAlphaFalloff').value = config.coreAlphaFalloff;
+        document.getElementById('coreAlphaFalloff-value').textContent = config.coreAlphaFalloff.toFixed(2);
+      }
+      if (config.coreExclusionRadius !== undefined) {
+        document.getElementById('coreExclusionRadius').value = config.coreExclusionRadius;
+        document.getElementById('coreExclusionRadius-value').textContent = config.coreExclusionRadius.toFixed(2);
+      }
 
       updateControlVisibility(config.type);
       updateInfo();
