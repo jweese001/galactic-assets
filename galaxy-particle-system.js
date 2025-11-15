@@ -17,7 +17,7 @@ export class GalaxyParticleSystem {
       edgeColor: config.edgeColor || new THREE.Color(0.4, 0.2, 0.6),   // Dark purple
       size: config.size || 55,
       diskThickness: config.diskThickness || 4.0,
-      coreSize: config.coreSize || 0.25,
+      coreSize: config.coreSize || 0.2,  // Smaller core zone for tighter control
       animationSpeed: config.animationSpeed || 0.5,
       rotationSpeed: config.rotationSpeed || 0.01,
       // Ring galaxy parameters
